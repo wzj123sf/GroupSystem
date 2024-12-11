@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd">
+    <context:component-scan base-package="org.example.GroupSystem">
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+    <context:property-placeholder location="classpath:application.properties"></context:property-placeholder>
+
+    <!--配置数据源-->
+    <bean id="hikariDataSource" class="com.zaxxer.hikari.HikariDataSource" destroy-method="close">
+        <property name="driverClassName" value="${db.driverClassName}"></property>
+        <property name="jdbcUrl" value="${db.url}"></property>
+        <property name="username" value="${db.userName}"></property>
+        <property name="password" value="${db.pwd}"></property>
+        <property name="connectionTimeout" value="${db.connectionTimeout}"></property>
+        <property name="minimumIdle" value="${db.minimumIdle}"></property>
+        <property name="maximumPoolSize" value="${db.maximumPoolSize}"></property>
+        <property name="idleTimeout" value="${db.idleTimeout}"></property>
+        <property name="maxLifetime" value="${db.maxLifetime}"></property>
+    </bean>
+    <!--配置mybities-->
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="hikariDataSource"></property>
+        <property name="mapperLocations" value="classpath:mybatis/mapper/*.xml"></property>
+        <property name="configLocation" value="classpath:mybatis/mybatis-config.xml"></property>
+    </bean>
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="org.example.GroupSystem.mapper"></property>
+        <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"></property>
+    </bean>
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="hikariDataSource"></property>
+    </bean>
+    <bean id="multipartConfigElement" class="javax.servlet.MultipartConfigElement">
+        <!-- 临时文件存储路径 -->
+        <constructor-arg value="resources/temp"/>
+        <!-- 单个文件的最大大小（10MB） -->
+        <constructor-arg value="10485760"/>
+        <!-- 请求的最大内容大小（20MB） -->
+        <constructor-arg value="20971520"/>
+        <!-- 单个上传文件的最大大小（1MB） -->
+        <constructor-arg value="1048576"/>
+    </bean>
+    <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <!-- 设置最大上传文件大小 -->
+        <property name="maxUploadSize" value="10485760"/>
+        <!-- 设置临时存储路径 -->
+        <property name="uploadTempDir" value="resources/temp"/>
+    </bean>
+
+
+    <!--事务配置-->
+    <tx:advice transaction-manager="txManager" id="txAdvice">
+        <tx:attributes>
+            <tx:method name="*" propagation="REQUIRED" isolation="DEFAULT"/>
+            <tx:method name="get*" read-only="true"></tx:method>
+            <tx:method name="select*" read-only="true"></tx:method>
+            <tx:method name="find*" read-only="true"></tx:method>
+            <tx:method name="query*" read-only="true"></tx:method>
+            <tx:method name="list*" read-only="true"></tx:method>
+        </tx:attributes>
+    </tx:advice>
+    <!--切入点-->
+    <aop:config>
+        <aop:pointcut id="txPc"
+                      expression="execution(* org.example.GroupSystem.service..*Service.*(..))"/>
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPc"/>
+    </aop:config>
+
+
+</beans>

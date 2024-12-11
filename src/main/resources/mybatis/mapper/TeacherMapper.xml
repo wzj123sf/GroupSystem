@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.GroupSystem.mapper.TeacherMapper">
+    <insert id="createClass" parameterType="org.example.GroupSystem.bean.dto.CreateClassDTO">
+        INSERT INTO class (class_name, description, teacher_username, created_at)
+        VALUES (#{className}, #{description}, #{teacherUsername}, CURRENT_TIMESTAMP)
+    </insert>
+    <insert id="createTask" parameterType="org.example.GroupSystem.bean.dto.CreateTaskDTO">
+        INSERT INTO task (task_name, description, due_date, class_id, created_at)
+        SELECT #{taskName}, #{description}, #{dueDate}, c.class_id, CURRENT_TIMESTAMP
+        FROM class c
+        WHERE c.class_name = #{className}
+    </insert>
+    <select id="selectClass" parameterType="java.lang.String" resultType="org.example.GroupSystem.bean.entity.ClassInfoDO">
+        SELECT class_name, description
+        FROM class
+        WHERE teacher_username = #{username}
+    </select>
+    <select id="selectTask" parameterType="java.lang.String" resultType="org.example.GroupSystem.bean.entity.TaskInfoDO">
+        SELECT t.task_name, t.description, t.due_date, t.created_at
+        FROM task t
+                 JOIN class c ON t.class_id = c.class_id
+        WHERE c.class_name = #{className}
+    </select>
+    <select id="selectStudent" parameterType="org.example.GroupSystem.bean.entity.SearchStuDO" resultType="org.example.GroupSystem.bean.entity.StudentDO">
+        SELECT
+            u.fullname,
+            ts.submission_date AS submissionDate,
+            ts.score,
+            t.task_name
+        FROM user u
+                 JOIN class_member cm ON u.username = cm.username
+                 JOIN class c ON cm.class_id = c.class_id
+                 LEFT JOIN task t ON c.class_id = t.class_id AND t.task_name = #{taskName}
+                 LEFT JOIN task_submission ts ON ts.username = u.username
+            AND ts.task_id = t.task_id
+            AND ts.submission_date = (
+                SELECT MAX(ts1.submission_date)
+                FROM task_submission ts1
+                WHERE ts1.username = ts.username
+                  AND ts1.task_id = ts.task_id
+            )
+        WHERE c.class_name = #{className}
+        ORDER BY u.fullname;
+    </select>
+
+
+
+
+    <select id="selectContent" parameterType="org.example.GroupSystem.bean.entity.SearchContentDO" resultType="org.example.GroupSystem.bean.entity.ContentDO">
+        SELECT ts.submission_id,
+               ts.submission_date,
+               ts.content,
+               ts.score,
+               u.fullname,
+               t.description
+        FROM task_submission ts
+                 JOIN task t ON ts.task_id = t.task_id
+                 JOIN user u ON ts.username = u.username
+        WHERE t.task_name = #{taskName}
+          AND u.fullname = #{fullname}
+          AND ts.submission_date = (
+            SELECT MAX(ts1.submission_date)
+            FROM task_submission ts1
+            WHERE ts1.task_id = ts.task_id
+              AND ts1.username = ts.username
+        )
+    </select>
+
+    <update id="updateScore">
+        UPDATE task_submission
+        SET score = #{score}
+        WHERE submission_id = #{submissionId};
+    </update>
+    <select id="getFilePath" resultType="java.lang.String">
+        SELECT file_path
+        FROM task_submission
+        WHERE submission_id = #{submissionId}
+    </select>
+
+
+</mapper>

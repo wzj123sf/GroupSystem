@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.GroupSystem.mapper.StudentMapper">
+
+    <insert id="joinClass" parameterType="org.example.GroupSystem.bean.dto.JoinClassDTO">
+        INSERT INTO class_member (class_id, username, joined_at)
+        SELECT class_id, #{username}, CURRENT_TIMESTAMP FROM class
+        WHERE class_name = #{className}
+    </insert>
+    <select id="selectClass" parameterType="java.lang.String" resultType="org.example.GroupSystem.bean.entity.ClassInfoDO">
+        SELECT class_name, description
+        FROM class
+        WHERE class_id IN (
+            SELECT class_id FROM class_member WHERE username = #{username}
+        )
+    </select>
+    <insert id="submitTask" parameterType="org.example.GroupSystem.bean.dto.SubmitTaskDTO">
+        INSERT INTO task_submission (task_id, username, content, file_path, file_name, submission_date,score)
+        SELECT t.task_id, #{username}, #{content}, #{filePath}, #{fileName}, CURRENT_TIMESTAMP,0
+        FROM task t
+        WHERE t.task_name = #{taskName};
+    </insert>
+
+    <select id="getTaskByName" parameterType="java.lang.String" resultType="org.example.GroupSystem.bean.entity.TaskInfoDO">
+        SELECT task_name, description, due_date, created_at
+        FROM task
+        WHERE task_name = #{taskName}
+    </select>
+    <select id="getScore" resultType="int">
+        SELECT
+            COALESCE(
+                    (SELECT score
+                     FROM task_submission ts
+                              JOIN task t ON ts.task_id = t.task_id
+                     WHERE t.task_name = #{taskName}
+                       AND ts.username = #{username}
+                     ORDER BY ts.submission_date DESC
+                    LIMIT 1),
+            -1) AS score
+    </select>
+
+
+</mapper>

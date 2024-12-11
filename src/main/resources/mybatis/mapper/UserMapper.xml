@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.GroupSystem.mapper.UserMapper">
+    <insert id="insert" parameterType="org.example.GroupSystem.bean.entity.UserDO">
+        INSERT INTO user (username, fullname, gender, phone, email, password, role)
+        VALUES (#{username}, #{fullname}, #{gender}, #{phone}, #{email}, #{password}, #{role});
+    </insert>
+    <select id="select" parameterType="java.lang.String" resultType="org.example.GroupSystem.bean.entity.UserInfoDO">
+        SELECT password, role
+        FROM user
+        WHERE username = #{username}
+    </select>
+</mapper>
